@@ -7,7 +7,6 @@ import pandas as pd
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-# TODO: get sp500 stocks
 # TODO: get PE of ticker by date
 
 
@@ -56,6 +55,25 @@ def fetch_sp500_tickers(refresh=False):
     return df
 
 
+def fetch_sp500_ticker_change_history(refresh=False):
+    """
+    Scrape from wiki the change history of sp500 tickers
+    Between January 1, 1963, and December 31, 2014, 1,186 index components were replaced by other components.
+    :param refresh: refresh data and save to local
+    :return: dataframe
+    """
+    _path = os.path.join(PROJECT_DIR, 'artifacts/sp500_stocks_change_history.csv')
+    if refresh:
+        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        response = requests.get(url)
+        df = pd.read_html(response.text)[1]
+        df.to_csv(_path, index=False)
+    else:
+        df = pd.read_csv(_path)
+    return df
+
+
 if __name__ == '__main__':
-    df = fetch_current_trading_stocks(exchange_names=['NASDAQ', 'NYSE'], refresh=True)
+    df = fetch_sp500_ticker_change_history(refresh=False)
     print(df)
+    print(1)
