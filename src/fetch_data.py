@@ -8,8 +8,6 @@ from threading import Lock, Event
 import multitasking
 import shared
 
-PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 class DataDownloader(object):
     def __init__(self):
@@ -25,7 +23,7 @@ class DataDownloader(object):
         Otherwise, will use the cached results saved in /artifacts/current_trading_stocks.json
         :return: dataframe
         """
-        _path = os.path.join(PROJECT_DIR, 'artifacts/stocks_global.csv')
+        _path = os.path.join(shared.PROJECT_DIR, 'artifacts/stocks_global.csv')
         if refresh:
             if self.API_KEY is None:
                 raise ValueError("API KEY is not provided, `source .dev_env` before running")
@@ -48,11 +46,10 @@ class DataDownloader(object):
         :param refresh: refresh artifacts data
         :return:
         """
-        _path = os.path.join(PROJECT_DIR, 'artifacts', ticker.lower(), period, 'key_metrics.csv')
+        _path = os.path.join(shared.PROJECT_DIR, 'artifacts', ticker.lower(), period, 'key_metrics.csv')
         dirname = os.path.dirname(_path)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        df = None
         if refresh:
             ticker = ticker.upper()
             url = f"https://financialmodelingprep.com/api/v3/key-metrics/{ticker}?period={period}&limit={limit}&"
@@ -61,6 +58,8 @@ class DataDownloader(object):
             if response.status_code == 200:
                 df = pd.DataFrame(response.json())
                 df.to_csv(_path, index=False)
+            else:
+                raise ValueError(response.status_code, response.json())
         else:
             df = pd.read_csv(_path)
         return df
@@ -107,7 +106,7 @@ def fetch_sp500_tickers(refresh=False):
     :param refresh: refresh data and save to local
     :return: dataframe of s&p500 stocks
     """
-    _path = os.path.join(PROJECT_DIR, 'artifacts/sp500_stocks.csv')
+    _path = os.path.join(shared.PROJECT_DIR, 'artifacts/sp500_stocks.csv')
     if refresh:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
         response = requests.get(url)
@@ -126,7 +125,7 @@ def fetch_sp500_ticker_change_history(refresh=False):
     :param refresh: refresh data and save to local
     :return: dataframe
     """
-    _path = os.path.join(PROJECT_DIR, 'artifacts/sp500_stocks_change_history.csv')
+    _path = os.path.join(shared.PROJECT_DIR, 'artifacts/sp500_stocks_change_history.csv')
     if refresh:
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
         response = requests.get(url)
