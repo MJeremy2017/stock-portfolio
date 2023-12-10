@@ -1,3 +1,4 @@
+import logging
 import os.path
 import threading
 
@@ -58,6 +59,7 @@ class DataDownloader(object):
             if response.status_code == 200:
                 df = pd.DataFrame(response.json())
                 df.to_csv(_path, index=False)
+                logging.info(f"Successfully fetched key metrics for {ticker}")
             else:
                 raise ValueError(response.status_code, response.json())
         else:
@@ -88,7 +90,7 @@ class DataDownloader(object):
                                         lock: Lock,
                                         event: Event,
                                         total: int):
-        multitasking.set_max_threads(multitasking.cpu_count * 2)
+        multitasking.set_max_threads(multitasking.cpu_count() * 2)
         self.fetch_ticker_key_metrics(ticker, period, limit, refresh=True)
         with lock:
             shared.CNT += 1
