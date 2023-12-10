@@ -11,7 +11,6 @@ import shared
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-# TODO: get PE of ticker by date
 class DataDownloader(object):
     def __init__(self):
         self.API_KEY = os.getenv('API_KEY')
@@ -90,6 +89,7 @@ class DataDownloader(object):
                                         lock: Lock,
                                         event: Event,
                                         total: int):
+        multitasking.set_max_threads(multitasking.cpu_count * 2)
         self.fetch_ticker_key_metrics(ticker, period, limit, refresh=True)
         with lock:
             shared.CNT += 1
