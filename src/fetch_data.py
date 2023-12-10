@@ -1,8 +1,12 @@
 import os.path
+import threading
+
 import requests
-import json
-from bs4 import BeautifulSoup
+from typing import List
 import pandas as pd
+from threading import Lock, Event
+import multitasking
+import shared
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -62,6 +66,37 @@ class DataDownloader(object):
             df = pd.read_csv(_path)
         return df
 
+    def batch_fetch_ticker_key_metrics(self,
+                                       tickers: List[str],
+                                       period: str,
+                                       limit: int):
+        """
+        Async fetch ticker key metrics
+        :param limit:
+        :param period:
+        :param tickers: List of tickers
+        """
+        lock = threading.Lock()
+        event = threading.Event()
+        for i, ticker in enumerate(tickers):
+            self._async_fetch_ticker_key_metrics(ticker, period, limit, lock, event, len(tickers))
+        event.wait()
+
+    @multitasking.task
+    def _async_fetch_ticker_key_metrics(self,
+                                        ticker: str,
+                                        period: str,
+                                        limit: int,
+                                        lock: Lock,
+                                        event: Event,
+                                        total: int):
+        self.fetch_ticker_key_metrics(ticker, period, limit, refresh=True)
+        with lock:
+            shared.CNT += 1
+            if shared.CNT >= total:
+                event.set()
+                shared.CNT = 0
+
     def _add_api_key(self, url: str) -> str:
         return url + f"apikey={self.API_KEY}"
 
@@ -105,11 +140,9 @@ def fetch_sp500_ticker_change_history(refresh=False):
 if __name__ == '__main__':
     ticker = 'AAPL'
     loader = DataDownloader()
-    data = loader.fetch_ticker_key_metrics(
-        ticker='AAPL',
+    loader.batch_fetch_ticker_key_metrics(
+        tickers=['AAPL', 'MMM', 'TSLA'],
         period='annual',
-        limit=1000,
-        refresh=True
+        limit=1000
     )
-    print(data)
-
+    # print(data)

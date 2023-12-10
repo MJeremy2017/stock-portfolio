@@ -2,3 +2,5 @@ venv
 .idea
 .dev_env
 notebooks/.ipynb_checkpoints/
+src/__pycache__/
+test.py
