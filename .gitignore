@@ -1,3 +1,4 @@
 venv
 .idea
 .dev_env
+notebooks/.ipynb_checkpoints/
