@@ -53,6 +53,7 @@ class DataDownloader(object):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         if refresh:
+            ticker = ticker.replace('.', '-')
             ticker = ticker.upper()
             url = f"https://financialmodelingprep.com/api/v3/key-metrics/{ticker}?period={period}&limit={limit}&"
             url = self._add_api_key(url)
@@ -146,11 +147,11 @@ def fetch_sp500_ticker_change_history(refresh=False):
 
 
 if __name__ == '__main__':
-    ticker = 'AAPL'
+    ticker = 'BRK'
     loader = DataDownloader()
     loader.batch_fetch_ticker_key_metrics(
-        tickers=['AAPL', 'MMM', 'TSLA'],
-        period='quarter',
+        tickers=['BRK.B', 'BF.B'],
+        period='annual',
         limit=1000
     )
     # print(data)
