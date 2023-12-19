@@ -40,7 +40,8 @@ class DataDownloader(object):
 
     def fetch_ticker_key_metrics(self, ticker: str, period: str, limit: int, refresh=False):
         """
-        Fetch P/B, P/E, ROE and other key metrics of a given ticker
+        Fetch P/B, P/E, ROE and other key metrics of a given ticker. Result will be stored as
+        a csv data frame under artifacts/{ticker}/key_metrics.csv
         :param ticker: e.g. AAPL
         :param period: annual or quarter
         :param limit: number of entries to fetch
@@ -78,8 +79,12 @@ class DataDownloader(object):
         """
         lock = threading.Lock()
         event = threading.Event()
-        for i, ticker in enumerate(tickers):
-            self._async_fetch_ticker_key_metrics(ticker, period, limit, lock, event, len(tickers))
+        done = []
+        try:
+            for i, ticker in enumerate(tickers):
+                self._async_fetch_ticker_key_metrics(ticker, period, limit, lock, event, len(tickers), done)
+        except Exception as e:
+            logging.error(f"Error fetching key metrics {e}\n Finished tickers are {done}")
         event.wait()
 
     @multitasking.task
@@ -89,11 +94,13 @@ class DataDownloader(object):
                                         limit: int,
                                         lock: Lock,
                                         event: Event,
-                                        total: int):
+                                        total: int,
+                                        done: List):
         multitasking.set_max_threads(multitasking.cpu_count() * 2)
         self.fetch_ticker_key_metrics(ticker, period, limit, refresh=True)
         with lock:
             shared.CNT += 1
+            done.append(ticker)
             if shared.CNT >= total:
                 event.set()
                 shared.CNT = 0
@@ -143,7 +150,7 @@ if __name__ == '__main__':
     loader = DataDownloader()
     loader.batch_fetch_ticker_key_metrics(
         tickers=['AAPL', 'MMM', 'TSLA'],
-        period='annual',
+        period='quarter',
         limit=1000
     )
     # print(data)
