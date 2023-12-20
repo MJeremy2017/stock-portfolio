@@ -105,14 +105,14 @@ class DataDownloader(object):
                 event.set()
                 shared.CNT = 0
 
-    def fetch_ticker_ohlc(self,
-                          ticker: str,
-                          period: str = None,
-                          start_date: str = None,
-                          end_date: str = None) -> pd.DataFrame:
+    def batch_fetch_tickers_ohlc(self,
+                                 tickers: List[str],
+                                 period: str = None,
+                                 start_date: str = None,
+                                 end_date: str = None) -> pd.DataFrame:
         """
         Fetch the open, high, low, and close price for a single ticker
-        :param ticker: str
+        :param tickers: List of tickers
         :param period: str
             Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
             Either Use period parameter or use start and end
@@ -120,9 +120,10 @@ class DataDownloader(object):
         :param end_date: str in YYYY-DD-MM format
         :return: a data frame
         """
-        ticker = self._standardize_ticker(ticker)
-        df = yf.download(tickers=ticker, period=period, start=start_date, end=end_date)
-        return df
+        tickers = [self._standardize_ticker(t) for t in tickers]
+        df = yf.download(tickers=tickers, period=period, start=start_date, end=end_date, group_by='ticker')
+
+        return df.stack(level=0).rename_axis(['Date', 'Ticker']).reset_index()
 
     def _add_api_key(self, url: str) -> str:
         return url + f"apikey={self.API_KEY}"
@@ -168,10 +169,11 @@ def fetch_sp500_ticker_change_history(refresh=False):
 
 
 if __name__ == '__main__':
-    ticker = 'BRK'
+    ticker = ['BRK.B', 'tsla', 'aapl']
     loader = DataDownloader()
-    data = loader.fetch_ticker_ohlc(
-        ticker='BRK.B',
+    data = loader.batch_fetch_tickers_ohlc(
+        tickers=ticker,
         period='2d'
     )
     print(data)
+
