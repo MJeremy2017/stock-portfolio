@@ -1,7 +1,7 @@
 import logging
 import os.path
 import threading
-
+import yfinance as yf
 import requests
 from typing import List
 import pandas as pd
@@ -53,8 +53,7 @@ class DataDownloader(object):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         if refresh:
-            ticker = ticker.replace('.', '-')
-            ticker = ticker.upper()
+            ticker = self._standardize_ticker(ticker)
             url = f"https://financialmodelingprep.com/api/v3/key-metrics/{ticker}?period={period}&limit={limit}&"
             url = self._add_api_key(url)
             response = requests.get(url)
@@ -106,8 +105,30 @@ class DataDownloader(object):
                 event.set()
                 shared.CNT = 0
 
+    def fetch_ticker_ohlc(self,
+                          ticker: str,
+                          period: str = None,
+                          start_date: str = None,
+                          end_date: str = None) -> pd.DataFrame:
+        """
+        Fetch the open, high, low, and close price for a single ticker
+        :param ticker: str
+        :param period: str
+            Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
+            Either Use period parameter or use start and end
+        :param start_date: str in YYYY-DD-MM format
+        :param end_date: str in YYYY-DD-MM format
+        :return: a data frame
+        """
+        ticker = self._standardize_ticker(ticker)
+        df = yf.download(tickers=ticker, period=period, start=start_date, end=end_date)
+        return df
+
     def _add_api_key(self, url: str) -> str:
         return url + f"apikey={self.API_KEY}"
+
+    def _standardize_ticker(self, ticker: str):
+        return ticker.replace('.', '-').upper()
 
 
 def fetch_sp500_tickers(refresh=False):
@@ -149,9 +170,8 @@ def fetch_sp500_ticker_change_history(refresh=False):
 if __name__ == '__main__':
     ticker = 'BRK'
     loader = DataDownloader()
-    loader.batch_fetch_ticker_key_metrics(
-        tickers=['BRK.B', 'BF.B'],
-        period='annual',
-        limit=1000
+    data = loader.fetch_ticker_ohlc(
+        ticker='BRK.B',
+        period='2d'
     )
-    # print(data)
+    print(data)
