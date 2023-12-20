@@ -1,3 +1,4 @@
 yfinance
 ipykernel
 tqdm
+matplotlib
