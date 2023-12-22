@@ -51,7 +51,9 @@ def _batch_generator(lst: List, batch_size: int):
 def _load_sp500_tickers() -> List:
     _path = os.path.join(shared.PROJECT_DIR, 'artifacts', 'sp500_stocks.csv')
     sp500 = pd.read_csv(_path)
-    return sp500['Symbol'].tolist()
+    res = sp500['Symbol'].tolist()
+    res.append('SPY')
+    return res
 
 
 if __name__ == '__main__':
