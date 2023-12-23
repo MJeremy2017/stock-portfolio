@@ -1,4 +1,4 @@
-# Identify Undervalues Stocks
+# Identify Undervalued Stocks
 
 This competition aims to identify undervalued stocks and evaluate their investment return in 1-2 year time.
 
