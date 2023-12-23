@@ -4,3 +4,4 @@ venv
 notebooks/.ipynb_checkpoints/
 src/__pycache__/
 test.py
+notebooks/__pycache__

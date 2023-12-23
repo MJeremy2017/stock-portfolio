@@ -5,13 +5,16 @@ This competition aims to identify undervalued stocks and evaluate their investme
 ## Data
 
 To get the training data, start a new notebook and use the `make_data` function in the `utils.py` file. 
-This returns `train`, `val` and `test` set. Note that `test` set should never be used for training or evaluation purposes, in the real contest, `test` set 
-will typically be hidden from the contestants.
+This returns `train`, and `val` set. Note that `test` set will also be created along the way it is hidden 
+from the contestants and is used for final evaluation only.
+
+Along the way, `df_ohlc` which contains all the prices of all `S&P500` stocks will also be returned for your training,
+however contestants are optional to use this data.
 
 ```
 from utils import make_data
 
-train, val, test = make_data()
+train, val, df_ohlc = make_data()
 ```
 
 ### Period
@@ -21,7 +24,7 @@ train, val, test = make_data()
 - **test**: From year `2015 ~ 2023`
 
 ### Columns
-All three sets contain all tickers in the current `SP500` following the same format with the following columns:
+All data sets contain all tickers in the current `S&P500` following the same format with the following columns:
 
 1. **symbol**: The stock ticker symbol representing the company.
 2. **date**: The date on which the data was recorded.
@@ -106,9 +109,16 @@ from utils import Evaluator, Model
 
 class MM(Model):
     def preprocess(self, data):
+        """
+        Put feature engineering here, the data set shares the same format as `val` from `make_data()`. 
+        """
         return data
     
     def predict(self, data):
+        """
+        The returned data frame must contain a column `symbol` with sorted stocks. Only the top 30 stocks will
+        be picked in the evaluation. 
+        """
         return pd.DataFrame({'symbol': ['AAPL', 'AAL']})
 
 
@@ -119,13 +129,11 @@ metric, bd_yr = e.evaluate()
 print(metric, bd_yr)
 ```
 
-A more formal example please refer to the `heuristic-example.ipynb`.
+A more formal example please refer to the [heuristic-example.ipynb](./heuristic-example.ipynb).
 
 ### Important Note
 
-1. Your model will be evaluated by the `test` set from the `make_data`, so it's important to NOT use `test` set in
-your training.
-2. During the evaluation, each stock's Q1 data per year will be fed to your model, and the buy-in time is taken on the
+1. During the evaluation, each stock's Q1 data per year will be fed to your model, and the buy-in time is taken on the
 first Monday and 30 days after the `date` of the report. The rationale is that if a Q1 financial report has a
 `date = {year}-03-31`, the
 result is normally released on 30 days after that `date`. Taking the first Monday after that is the first date that the stock
