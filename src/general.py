@@ -1,8 +1,8 @@
 import os
 import time
 import pandas as pd
-import shared
-from fetch_data import DataDownloader
+from src import shared
+from src.fetch_data import DataDownloader
 from typing import List
 from tqdm import tqdm
 import logging

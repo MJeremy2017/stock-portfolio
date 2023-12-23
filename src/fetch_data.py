@@ -7,7 +7,7 @@ from typing import List
 import pandas as pd
 from threading import Lock, Event
 import multitasking
-import shared
+from src import shared
 
 
 class DataDownloader(object):
