@@ -181,7 +181,9 @@ class Evaluator:
         res_df = pd.DataFrame(aggregated_res, index=indexes)
         overall_agg = {
             '1_year_avg': res_df['1y_mean'].mean(),
+            '1_year_std': res_df['1y_mean'].std(),
             '2_year_avg': res_df['2y_mean'].mean(),
+            '2_year_std': res_df['2y_mean'].std(),
         }
         return overall_agg, res_df
 
