@@ -3,7 +3,7 @@ import os.path
 import threading
 import yfinance as yf
 import requests
-from typing import List
+from typing import List, Callable
 import pandas as pd
 from threading import Lock, Event
 import multitasking
@@ -79,12 +79,14 @@ class DataDownloader(object):
             df = pd.read_csv(_path)
         return df
 
-    def batch_fetch_key_metrics(self,
-                                tickers: List[str],
-                                period: str,
-                                limit: int):
+    def batch_fetch(self,
+                    func: Callable,
+                    tickers: List[str],
+                    period: str,
+                    limit: int):
         """
         Async fetch ticker key metrics
+        :param func: The functional API to call
         :param limit:
         :param period:
         :param tickers: List of tickers
@@ -94,22 +96,23 @@ class DataDownloader(object):
         done = []
         try:
             for i, ticker in enumerate(tickers):
-                self._async_fetch_key_metrics(ticker, period, limit, lock, event, len(tickers), done)
+                self._async_fetch(func, ticker, period, limit, lock, event, len(tickers), done)
+            event.wait()
         except Exception as e:
             logging.error(f"Error fetching key metrics {e}\n Finished tickers are {done}")
-        event.wait()
 
     @multitasking.task
-    def _async_fetch_key_metrics(self,
-                                 ticker: str,
-                                 period: str,
-                                 limit: int,
-                                 lock: Lock,
-                                 event: Event,
-                                 total: int,
-                                 done: List):
+    def _async_fetch(self,
+                     func: Callable,
+                     ticker: str,
+                     period: str,
+                     limit: int,
+                     lock: Lock,
+                     event: Event,
+                     total: int,
+                     done: List):
         multitasking.set_max_threads(multitasking.cpu_count() * 2)
-        self.fetch_key_metrics(ticker, period, limit, refresh=True)
+        func(ticker=ticker, period=period, limit=limit, refresh=True)
         with lock:
             shared.CNT += 1
             done.append(ticker)
@@ -147,7 +150,6 @@ class DataDownloader(object):
         ticker = self._standardize_ticker(ticker)
         url = f"https://financialmodelingprep.com/api/v3/{path}/{ticker}?period={period}&limit={limit}&"
         url = self._add_api_key(url)
-        print("url \n", url)
         response = requests.get(url)
         if response.status_code == 200:
             df = pd.DataFrame(response.json())
@@ -201,10 +203,10 @@ def _check_or_create_directory(path):
 if __name__ == '__main__':
     ticker = ['BRK.B', 'tsla', 'aapl']
     loader = DataDownloader()
-    data = loader.fetch_key_metrics(
-        ticker='tsla',
+    loader.batch_fetch(
+        func=loader.fetch_income_statement,
+        tickers=ticker,
         period='quarter',
-        limit=1000,
-        refresh=True
+        limit=1000
     )
-    print(data)
+    # print(data)
