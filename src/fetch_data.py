@@ -38,7 +38,7 @@ class DataDownloader(object):
         df = df[df['exchangeShortName'].isin(exchange_names)]
         return df
 
-    def fetch_ticker_key_metrics(self, ticker: str, period: str, limit: int, refresh=False):
+    def fetch_key_metrics(self, ticker: str, period: str, limit: int, refresh=False):
         """
         Fetch P/B, P/E, ROE and other key metrics of a given ticker. Result will be stored as
         a csv data frame under artifacts/{ticker}/key_metrics.csv
@@ -67,10 +67,30 @@ class DataDownloader(object):
             df = pd.read_csv(_path)
         return df
 
-    def batch_fetch_ticker_key_metrics(self,
-                                       tickers: List[str],
-                                       period: str,
-                                       limit: int):
+    def fetch_income_statement(self, ticker: str, period: str, limit: int, refresh=False):
+        """
+        Reference to: https://site.financialmodelingprep.com/developer/docs#income-statements-financial-statements
+        :param ticker: e.g. AAPL
+        :param period: annual or quarter
+        :param limit: number of entries to fetch
+        :param refresh: refresh artifacts data
+        :return:
+        """
+        _api_path = "income-statement"
+        _path = os.path.join(shared.PROJECT_DIR, 'artifacts', ticker.lower(), period, 'income_statement.csv')
+        _check_or_create_directory(_path)
+        if refresh:
+            df = self._fetch_data_from_api(_api_path, ticker, period, limit)
+            df.to_csv(_path, index=False)
+            logging.info(f"Successfully fetched income statement for {ticker}")
+        else:
+            df = pd.read_csv(_path)
+        return df
+
+    def batch_fetch_key_metrics(self,
+                                tickers: List[str],
+                                period: str,
+                                limit: int):
         """
         Async fetch ticker key metrics
         :param limit:
@@ -82,22 +102,22 @@ class DataDownloader(object):
         done = []
         try:
             for i, ticker in enumerate(tickers):
-                self._async_fetch_ticker_key_metrics(ticker, period, limit, lock, event, len(tickers), done)
+                self._async_fetch_key_metrics(ticker, period, limit, lock, event, len(tickers), done)
         except Exception as e:
             logging.error(f"Error fetching key metrics {e}\n Finished tickers are {done}")
         event.wait()
 
     @multitasking.task
-    def _async_fetch_ticker_key_metrics(self,
-                                        ticker: str,
-                                        period: str,
-                                        limit: int,
-                                        lock: Lock,
-                                        event: Event,
-                                        total: int,
-                                        done: List):
+    def _async_fetch_key_metrics(self,
+                                 ticker: str,
+                                 period: str,
+                                 limit: int,
+                                 lock: Lock,
+                                 event: Event,
+                                 total: int,
+                                 done: List):
         multitasking.set_max_threads(multitasking.cpu_count() * 2)
-        self.fetch_ticker_key_metrics(ticker, period, limit, refresh=True)
+        self.fetch_key_metrics(ticker, period, limit, refresh=True)
         with lock:
             shared.CNT += 1
             done.append(ticker)
@@ -130,6 +150,18 @@ class DataDownloader(object):
 
     def _standardize_ticker(self, ticker: str):
         return ticker.replace('.', '-').upper()
+
+    def _fetch_data_from_api(self, path: str, ticker: str, period: str, limit: int):
+        ticker = self._standardize_ticker(ticker)
+        url = f"https://financialmodelingprep.com/api/v3/{path}/{ticker}?period={period}&limit={limit}&"
+        url = self._add_api_key(url)
+        print("url \n", url)
+        response = requests.get(url)
+        if response.status_code == 200:
+            df = pd.DataFrame(response.json())
+            return df
+        else:
+            raise ValueError(response.status_code, response.json())
 
 
 def fetch_sp500_tickers(refresh=False):
@@ -168,12 +200,19 @@ def fetch_sp500_ticker_change_history(refresh=False):
     return df
 
 
+def _check_or_create_directory(path):
+    dirname = os.path.dirname(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+
 if __name__ == '__main__':
     ticker = ['BRK.B', 'tsla', 'aapl']
     loader = DataDownloader()
-    data = loader.batch_fetch_tickers_ohlc(
-        tickers=ticker,
-        period='2d'
+    data = loader.fetch_income_statement(
+        ticker='tsla',
+        period='quarter',
+        limit=1000,
+        refresh=True
     )
     print(data)
-
