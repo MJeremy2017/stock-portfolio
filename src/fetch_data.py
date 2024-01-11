@@ -79,6 +79,26 @@ class DataDownloader(object):
             df = pd.read_csv(_path)
         return df
 
+    def fetch_balance_sheet_statement(self, ticker: str, period: str, limit: int, refresh=False):
+        """
+        Reference to: https://site.financialmodelingprep.com/developer/docs#balance-sheet-statements-financial-statements
+        :param ticker: e.g. AAPL
+        :param period: annual or quarter
+        :param limit: number of entries to fetch
+        :param refresh: refresh artifacts data
+        :return:
+        """
+        _api_path = "balance-sheet-statement"
+        _path = os.path.join(shared.PROJECT_DIR, 'artifacts', ticker.lower(), period, 'balance_sheet_statement.csv')
+        _check_or_create_directory(_path)
+        if refresh:
+            df = self._fetch_data_from_api(_api_path, ticker, period, limit)
+            df.to_csv(_path, index=False)
+            logging.info(f"Successfully fetched balance sheet statement for {ticker}")
+        else:
+            df = pd.read_csv(_path)
+        return df
+
     def batch_fetch(self,
                     func: Callable,
                     tickers: List[str],
@@ -112,13 +132,17 @@ class DataDownloader(object):
                      total: int,
                      done: List):
         multitasking.set_max_threads(multitasking.cpu_count() * 2)
-        func(ticker=ticker, period=period, limit=limit, refresh=True)
-        with lock:
-            shared.CNT += 1
-            done.append(ticker)
-            if shared.CNT >= total:
-                event.set()
-                shared.CNT = 0
+        try:
+            func(ticker=ticker, period=period, limit=limit, refresh=True)
+        except Exception as e:
+            raise ValueError(f"Error downloading {ticker} {e}")
+        finally:
+            with lock:
+                shared.CNT += 1
+                done.append(ticker)
+                if shared.CNT >= total:
+                    event.set()
+                    shared.CNT = 0
 
     def batch_fetch_tickers_ohlc(self,
                                  tickers: List[str],
@@ -201,12 +225,11 @@ def _check_or_create_directory(path):
 
 
 if __name__ == '__main__':
-    ticker = ['BRK.B', 'tsla', 'aapl']
     loader = DataDownloader()
-    loader.batch_fetch(
-        func=loader.fetch_income_statement,
-        tickers=ticker,
+    data = loader.fetch_balance_sheet_statement(
+        ticker='tsla',
         period='quarter',
-        limit=1000
+        limit=1000,
+        refresh=True
     )
-    # print(data)
+    print(data)
