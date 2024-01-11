@@ -99,6 +99,26 @@ class DataDownloader(object):
             df = pd.read_csv(_path)
         return df
 
+    def fetch_cashflow_statement(self, ticker: str, period: str, limit: int, refresh=False):
+        """
+        Reference to: https://site.financialmodelingprep.com/developer/docs#cashflow-statements-financial-statements
+        :param ticker: e.g. AAPL
+        :param period: annual or quarter
+        :param limit: number of entries to fetch
+        :param refresh: refresh artifacts data
+        :return:
+        """
+        _api_path = "cash-flow-statement"
+        _path = os.path.join(shared.PROJECT_DIR, 'artifacts', ticker.lower(), period, 'cash_flow_statement.csv')
+        _check_or_create_directory(_path)
+        if refresh:
+            df = self._fetch_data_from_api(_api_path, ticker, period, limit)
+            df.to_csv(_path, index=False)
+            logging.info(f"Successfully fetched {_api_path} for {ticker}")
+        else:
+            df = pd.read_csv(_path)
+        return df
+
     def batch_fetch(self,
                     func: Callable,
                     tickers: List[str],
@@ -226,9 +246,9 @@ def _check_or_create_directory(path):
 
 if __name__ == '__main__':
     loader = DataDownloader()
-    data = loader.fetch_balance_sheet_statement(
+    data = loader.fetch_cashflow_statement(
         ticker='tsla',
-        period='quarter',
+        period='annual',
         limit=1000,
         refresh=True
     )

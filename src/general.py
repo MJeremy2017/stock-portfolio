@@ -64,4 +64,4 @@ if __name__ == '__main__':
     data = download_sp500_ohlc(period='max', save_file='sp500_ohlc.csv')
     print(data.head())
     """
-    download_sp500_metrics(_downloader.fetch_balance_sheet_statement, period='quarter', limit=1000)
+    download_sp500_metrics(_downloader.fetch_cashflow_statement, period='quarter', limit=1000)
