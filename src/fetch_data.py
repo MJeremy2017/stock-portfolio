@@ -1,5 +1,6 @@
 import logging
 import os.path
+from tqdm import tqdm
 import threading
 import yfinance as yf
 import requests
@@ -219,6 +220,19 @@ class DataDownloader(object):
             df = pd.read_csv(_path)
         return df
 
+    def fetch_company_profiles(self, tickers: List):
+        res = []
+        for ticker in tqdm(tickers):
+            ticker = self._standardize_ticker(ticker)
+            url = f"https://financialmodelingprep.com/api/v3/profile/{ticker}?"
+            url = self._add_api_key(url)
+            response = requests.get(url)
+            if response.status_code == 200:
+                res.append(response.json()[0])
+            else:
+                raise ValueError(response.status_code, response.json())
+        return pd.DataFrame(res)
+
     def batch_fetch(self,
                     func: Callable,
                     tickers: List[str],
@@ -346,10 +360,7 @@ def _check_or_create_directory(path):
 
 if __name__ == '__main__':
     loader = DataDownloader()
-    data = loader.fetch_financial_growth(
-        ticker='tsla',
-        period='annual',
-        limit=1000,
-        refresh=True
+    data = loader.fetch_company_profiles(
+        tickers=['aapl', 'tsla', 'mmm'],
     )
     print(data)
