@@ -26,6 +26,22 @@ def download_sp500_metrics(func: Callable, period: str, limit: int, batch_size: 
             time.sleep(_sleep_seconds)
 
 
+def download_sp500_company_profiles():
+    _sleep_seconds = 30
+    _path = os.path.join(shared.PROJECT_DIR, 'artifacts', 'sp500_company_profiles.csv')
+    sp500_tickers = _load_sp500_tickers()
+    res = []
+    for i, ticker in tqdm(enumerate(sp500_tickers)):
+        resp = _downloader.fetch_company_profile(ticker)
+        res.append(resp)
+        if i+1 % 300 == 0:
+            print(f"Sleep {_sleep_seconds}s waiting for rate limit ...")
+            time.sleep(_sleep_seconds)
+
+    pd.DataFrame(res).to_csv(_path, index=False)
+    print("Result saved to", _path)
+
+
 def download_sp500_ohlc(period: str = None, start_date: str = None, end_date: str = None, save_file: str = None):
     sp500_tickers = _load_sp500_tickers()
     df = _downloader.batch_fetch_tickers_ohlc(
@@ -64,4 +80,4 @@ if __name__ == '__main__':
     data = download_sp500_ohlc(period='max', save_file='sp500_ohlc.csv')
     print(data.head())
     """
-    download_sp500_metrics(_downloader.fetch_financial_growth, period='quarter', limit=1000, batch_size=10)
+    download_sp500_company_profiles()
